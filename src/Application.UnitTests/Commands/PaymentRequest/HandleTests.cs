@@ -101,7 +101,7 @@ namespace Application.UnitTests.Commands.PaymentRequest
 
             // Assert
             var result = await Assert.ThrowsAsync<PaymentException>(task);
-            result.Message.Should().Be("The reference provided is no longer a valid pending payment");
+            result.Message.Should().Be("The reference provided is not valid");
         }
 
         [Fact]
@@ -116,19 +116,8 @@ namespace Application.UnitTests.Commands.PaymentRequest
 
             // Assert
             var result = await Assert.ThrowsAsync<PaymentException>(task);
-            result.Message.Should().Be("The reference provided is no longer a valid pending payment");
+            result.Message.Should().Be("The reference provided is not valid");
         }
 
-        [Fact]
-        public async Task Handle_returns_Payment_when_successful()
-        {
-            // Arrange
-
-            // Act
-            var result = await _commandHandler.Handle(_command, new System.Threading.CancellationToken());
-
-            // Assert
-            result.Should().BeOfType<Payment>();
-        }
     }
 }

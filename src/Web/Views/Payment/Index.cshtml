@@ -30,8 +30,8 @@
 
                                     <p>This screen will automatically redirect you shortly after the payment has been successful.</p>                                    
                                     
-                                    <a class="button button--default button--link" onclick="stopReload()" href="~/SmartPayFuse/ManualPaymentResponse?internalReference=@Model.InternalReference&result=FAILED">Payment fail</a> 
-                                    <a class="button button--default button--link" onclick="stopReload()" href="~/SmartPayFuse/ManualPaymentResponse?internalReference=@Model.InternalReference&result=CANCELLED">Cancel</a>
+                                    <a class="button button--default button--link" onclick="stopReload()" href="~/Payment/PaymentResponse?internalReference=@Model.InternalReference&result=FAILED">Payment fail</a> 
+                                    <a class="button button--default button--link" onclick="stopReload()" href="~/Payment/PaymentResponse?internalReference=@Model.InternalReference&result=CANCELLED">Cancel</a>
                                 </div>
                                     
                                 </fieldset>
@@ -47,18 +47,6 @@
     <script type="text/javascript">
         var reloadEnabled = true;
         var autoReload = setTimeout(function () { if (reloadEnabled) { location.reload(); } }, 5000);
-
-        $(".pspref").on("click change keyup keydown", function () {
-            reloadEnabled = false;
-            window.stop();
-            console.log("hi");
-        })
-
-        $(".button--success").on("click", function (e) {
-            e.preventDefault();
-            var url = $(this).attr('href');
-            window.location = url + $.trim($(".pspref").val());
-        });
 
         stopReload = function () {
             clearTimeout(autoReload);

@@ -2,6 +2,7 @@
 {
     public static class AuthorisationResult
     {
-        public const string Authorised = "AUTHORISED";
+        public const string Failed = "FAILED";
+        public const string Cancelled = "CANCELLED";
     }
 }

@@ -46,11 +46,11 @@ namespace Web.Controllers
         }
 
         [HttpGet("PaymentResponse")]
-        public async Task<IActionResult> PaymentResponse()
+        public async Task<IActionResult> PaymentResponse(string internalReference, string result)
         {
             try
             {
-                var processPaymentResponse = await Mediator.Send(new PaymentResponseCommand() { Paramaters = HttpContext.Request.QueryString.ToDictionary() });
+                var processPaymentResponse = await Mediator.Send(new PaymentResponseCommand() { Paramaters = HttpContext.Request.QueryString.ToDictionary(), InternalReference = internalReference, Result = result });
 
                 if (!processPaymentResponse.Success)
                 {
