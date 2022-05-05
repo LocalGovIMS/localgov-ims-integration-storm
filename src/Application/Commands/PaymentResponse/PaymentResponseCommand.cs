@@ -32,65 +32,11 @@ namespace Application.Commands
 
         public async Task<ProcessPaymentResponseModel> Handle(PaymentResponseCommand request, CancellationToken cancellationToken)
         {
-            ValidateRequest(request);
-
-            BuildProcessPaymentModel(request.Paramaters);
-
+            // TODO - Handle manual responses e.g. failed - cancelled
+            
             await ProcessPayment();
 
             return _processPaymentResponseModel;
-        }
-
-        private void ValidateRequest(PaymentResponseCommand request)
-        {
-            var originalMerchantSignature = ExtractMerchantSignature(request.Paramaters);
-            var calculatedMerchantSignature = CalculateMerchantSignature(request.Paramaters);
-
-            if (!calculatedMerchantSignature.Equals(originalMerchantSignature))
-            {
-                throw new PaymentException("Unable to process the payment");
-            }
-        }
-
-        private static string ExtractMerchantSignature(Dictionary<string, string> paramaters)
-        {
-            string originalMerchantSignature = paramaters[Keys.MerchantSignature];
-
-            paramaters.Remove(Keys.MerchantSignature);
-
-            return originalMerchantSignature;
-        }
-
-        private string CalculateMerchantSignature(Dictionary<string, string> paramaters)
-        {
-            string signingString = SigningUtilities.BuildSigningString(paramaters);
-            string calculatedMerchantSignature = HmacUtilities.CalculateHmac(_configuration.GetValue<string>("SmartPay:HmacKey"), signingString);
-
-            return calculatedMerchantSignature;
-        }
-
-        private void BuildProcessPaymentModel(Dictionary<string, string> paramaters)
-        {
-            switch (paramaters[Keys.AuthorisationResult])
-            {
-                case AuthorisationResult.Authorised:
-                    _processPaymentModel = new ProcessPaymentModel()
-                    {
-                        AuthResult = paramaters.GetValueOrDefault(Keys.AuthorisationResult),
-                        PspReference = paramaters.GetValueOrDefault(Keys.PspReference),
-                        MerchantReference = paramaters.GetValueOrDefault(Keys.MerchantReference),
-                        PaymentMethod = paramaters.GetValueOrDefault(Keys.PaymentMethod)
-                    };
-                    break;
-
-                default:
-                    _processPaymentModel = new ProcessPaymentModel()
-                    {
-                        AuthResult = paramaters.GetValueOrDefault(Keys.AuthorisationResult),
-                        MerchantReference = paramaters.GetValueOrDefault(Keys.MerchantReference)
-                    };
-                    break;
-            }
         }
 
         private async Task ProcessPayment()

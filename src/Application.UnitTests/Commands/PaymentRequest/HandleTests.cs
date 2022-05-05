@@ -30,15 +30,11 @@ namespace Application.UnitTests.Commands.PaymentRequest
                 _mockBuilder.Object);
 
             SetupClient(System.Net.HttpStatusCode.OK);
-            SetupCryptographyService();
             SetupCommand("reference", "hash");
         }
 
         private void SetupClient(System.Net.HttpStatusCode statusCode)
         {
-            _mockLocalGovImsPaymentApiClient.Setup(x => x.Notify(It.IsAny<NotificationModel>()))
-                .ReturnsAsync(statusCode);
-
             _mockLocalGovImsPaymentApiClient.Setup(x => x.GetProcessedTransactions(It.IsAny<string>()))
                 .ReturnsAsync((List<ProcessedTransactionModel>)null);
 
@@ -50,17 +46,8 @@ namespace Application.UnitTests.Commands.PaymentRequest
                     }
                 });
 
-            _mockLocalGovImsPaymentApiClient.Setup(x => x.GetCardSelfServiceMopCode())
-                .ReturnsAsync(new MethodOfPaymentModel() { Code = "MC" });
-
             _mockBuilder.Setup(x => x.Build(It.IsAny<PaymentBuilderArgs>()))
                 .Returns(new Payment());
-        }
-
-        private void SetupCryptographyService()
-        {
-            _mockCryptographyService.Setup(x => x.GetHash(It.IsAny<string>()))
-                .Returns("hash");
         }
 
         private void SetupCommand(string reference, string hash)
@@ -95,20 +82,7 @@ namespace Application.UnitTests.Commands.PaymentRequest
             var result = await Assert.ThrowsAsync<PaymentException>(task);
             result.Message.Should().Be("The reference provided is not valid");
         }
-
-        [Fact]
-        public async Task Handle_throws_PaymentException_when_the_hash_doesn_not_match_the_computed_hash()
-        {
-            // Arrange
-            SetupCommand("reference", "hash that doesn't match");
-
-            // Act
-            async Task task() => await _commandHandler.Handle(_command, new System.Threading.CancellationToken());
-
-            // Assert
-            var result = await Assert.ThrowsAsync<PaymentException>(task);
-            result.Message.Should().Be("The reference provided is not valid");
-        }
+        
 
         [Fact]
         public async Task Handle_throws_PaymentException_when_processed_transactions_exists_for_the_reference()

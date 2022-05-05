@@ -1,6 +1,5 @@
 ﻿using Application.Builders;
 using Application.Clients.LocalGovImsPaymentApi;
-using Application.Cryptography;
 using Application.Models;
 using Domain.Exceptions;
 using MediatR;
@@ -8,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Cryptography;
 
 namespace Application.Commands
 {
@@ -20,9 +20,9 @@ namespace Application.Commands
 
     public class PaymentRequestCommandHandler : IRequestHandler<PaymentRequestCommand, Payment>
     {
-        private readonly ICryptographyService _cryptographyService;
         private readonly ILocalGovImsPaymentApiClient _localGovImsPaymentApiClient;
         private readonly IBuilder<PaymentBuilderArgs, Payment> _paymentBuilder;
+        private readonly ICryptographyService _cryptographyService;
 
         private List<PendingTransactionModel> _pendingTransactions;
         private PendingTransactionModel _pendingTransaction;
@@ -33,9 +33,9 @@ namespace Application.Commands
             ILocalGovImsPaymentApiClient localGovImsPaymentApiClient,
             IBuilder<PaymentBuilderArgs, Payment> paymentBuilder)
         {
-            _cryptographyService = cryptographyService;
             _localGovImsPaymentApiClient = localGovImsPaymentApiClient;
             _paymentBuilder = paymentBuilder;
+            _cryptographyService = cryptographyService;
         }
 
         public async Task<Payment> Handle(PaymentRequestCommand request, CancellationToken cancellationToken)

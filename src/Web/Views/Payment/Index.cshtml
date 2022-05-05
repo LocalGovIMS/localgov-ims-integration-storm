@@ -5,6 +5,7 @@
     Layout = "~/Views/Shared/_MinimalLayout.cshtml";
 }
 
+
 <div class="panels">
     <div class="grid grid--gutters">
         <div class="container container--page" style="max-width: 800px;">
@@ -12,55 +13,27 @@
                 <div class="grid__row">
                     <div class="grid__column grid__column--12">
                         <div class="panel">
-                            <form method="POST" id="paymentForm" action="@Model.HppUrl">
+                            <form method="POST" id="paymentForm">
                                 <fieldset>
-                                    <legend>Proceed to payment</legend>
 
-                                    @if (!Model.ManuallyStopRecording)
-                                    {
-                                        <p>You're being redirected to our secure online payment system.</p>
-                                        <p>If you are not automatically redirected within 10 seconds please select 'Begin your payment' below</p>
-                                    }
-                                    else
-                                    {
-                                        <div style="text-align: center;">
-                                            <p><strong style="font-size: 8rem; color:#aa0000">!</strong></p>
-                                            <p><strong style="font-size: 2rem; color: #aa0000">Please manually stop recording the call</strong></p>
-                                            <p>Once the call is no longer recording you can press 'Begin your payment'</p>
-                                        </div>
-                                    }
+                                    
+                                <div style="text-align: center;">
+                                    <p><div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></p>
+                                    <p>
+                                        <strong style="font-size: 2rem; color: #5a3859;">Please complete payment in Storm PadLock</strong>
+                                    </p>
 
-                                    <!-- Billing details -->
-                                    <input type="hidden" name="currencyCode" value="@Model.CurrencyCode">
-                                    <input type="hidden" name="merchantAccount" value="@Model.MerchantAccount">
-                                    <input type="hidden" name="merchantReference" value="@Model.MerchantReference">
-                                    <input type="hidden" name="paymentAmount" value="@Model.PaymentAmount">
-                                    <input type="hidden" name="recurringContract" value="">
-                                    <input type="hidden" name="sessionValidity" value="@Model.SessionValidity">
-                                    <input type="hidden" name="shipBeforeDate" value="@Model.ShipBeforeDate">
-                                    <input type="hidden" name="shopperEmail" value="">
-                                    <input type="hidden" name="shopperLocale" value="@Model.ShopperLocale">
-                                    <input type="hidden" name="shopperReference" value="">
-                                    <input type="hidden" name="skinCode" value="@Model.SkinCode">
-                                    <input type="hidden" name="resURL" value="@Model.ResUrl">
-                                    <input type="hidden" name="merchantSig" value="@Model.MerchantSig">
+                                    <p>If PadLock has not automatically loaded please copy and paste the following details <strong>EXACTLY</strong>. If you alter the reference or amount the payment will later be rejected.</p>
 
-                                    @if (Model.BillingAddress != null)
-                                    {
-                                        <!-- Address details -->
-                                        <input type="hidden" name="billingAddress.street" value="@Model.BillingAddress.Street">
-                                        <input type="hidden" name="billingAddress.houseNumberOrName" value="@Model.BillingAddress.HouseNumberOrName">
-                                        <input type="hidden" name="billingAddress.city" value="@Model.BillingAddress.City">
-                                        <input type="hidden" name="billingAddress.postalCode" value="@Model.BillingAddress.PostCode">
-                                        <input type="hidden" name="billingAddress.stateOrProvince" value="@Model.BillingAddress.County">
-                                        <input type="hidden" name="billingAddress.country" value="@Model.BillingAddress.Country">
-                                        <input type="hidden" name="billingAddressType" value="@Model.BillingAddress.Type">
-                                        <input type="hidden" name="billingAddressSig" value="@Model.BillingAddress.MerchantSig">
-                                    }
+                                    <div class="tooltip" onmouseout="outFunc()"><span class="tooltiptext" id="myTooltip">Copy to clipboard</span><label class="storm-label">Transaction amount (£)</label><input type="text" class="js-amount js-copy" onclick="copyToClipboard('js-amount')" value="@(string.Format("{0:F2}", Model.Amount))" /></div>
+                                    <div class="tooltip" onmouseout="outFunc()"><span class="tooltiptext" id="myTooltip">Copy to clipboard</span><label class="storm-label">Reference</label><input type="text" class="js-reference js-copy" onclick="copyToClipboard('js-reference')" value="@Model.InternalReference" /></div>
 
-                                    <div style="text-align: center; margin-top: 2rem;">
-                                        <input type="submit" class="button button--main " value="Begin your payment">
-                                    </div>
+                                    <p>This screen will automatically redirect you shortly after the payment has been successful.</p>                                    
+                                    
+                                    <a class="button button--default button--link" onclick="stopReload()" href="~/SmartPayFuse/ManualPaymentResponse?internalReference=@Model.InternalReference&result=FAILED">Payment fail</a> 
+                                    <a class="button button--default button--link" onclick="stopReload()" href="~/SmartPayFuse/ManualPaymentResponse?internalReference=@Model.InternalReference&result=CANCELLED">Cancel</a>
+                                </div>
+                                    
                                 </fieldset>
                             </form>
                         </div>
@@ -71,9 +44,180 @@
     </div>
 </div>
 
-@if (!Model.ManuallyStopRecording)
-{
     <script type="text/javascript">
-        document.getElementById('paymentForm').submit();
+        var reloadEnabled = true;
+        var autoReload = setTimeout(function () { if (reloadEnabled) { location.reload(); } }, 5000);
+
+        $(".pspref").on("click change keyup keydown", function () {
+            reloadEnabled = false;
+            window.stop();
+            console.log("hi");
+        })
+
+        $(".button--success").on("click", function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            window.location = url + $.trim($(".pspref").val());
+        });
+
+        stopReload = function () {
+            clearTimeout(autoReload);
+        }
+
+        function copyToClipboard(className) {
+            /* Get the text field */
+            var copyText = document.getElementsByClassName(className)[0];
+
+            /* Select the text field */
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); /*For mobile devices*/
+
+            /* Copy the text inside the text field */
+            document.execCommand("copy");
+
+        /* Alert the copied text */
+            var tooltip = document.getElementsByClassName("tooltiptext");
+            tooltip[0].innerHTML = "Copied: " + copyText.value;
+            tooltip[1].innerHTML = "Copied: " + copyText.value;
+        }
+
+        function outFunc() {
+            var tooltip = document.getElementsByClassName("tooltiptext");
+            tooltip[0].innerHTML = "Copy to clipboard";
+            tooltip[0].innerHTML = "Copy to clipboard";
+        }
+
     </script>
-}
+    <style type="text/css">
+
+    .storm-label {
+        display: inline-block;
+        width: 200px;
+        text-align: right;
+        padding-right: 10px;
+        margin-left: -50px;
+    }
+
+    .js-reference {
+        display: inline-block;
+        border: 1px solid #ccc;
+        padding: 10px;
+    }
+
+    .tooltip {
+        position: relative;
+        display: block;
+    }
+
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 140px;
+        background-color: #555;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 105%;
+        left: 50%;
+        margin-left: 0px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tooltip .tooltiptext::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #555 transparent transparent transparent;
+    }
+
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .lds-spinner {
+        color: transparent;
+        display: inline-block;
+        position: relative;
+        width: 80px;
+        height: 80px;
+    }
+    .lds-spinner div {
+        transform-origin: 40px 40px;
+        animation: lds-spinner 1.2s linear infinite;
+    }
+    .lds-spinner div:after {
+        content: " ";
+        display: block;
+        position: absolute;
+        top: 3px;
+        left: 37px;
+        width: 6px;
+        height: 18px;
+        border-radius: 20%;
+        background: #5a3859;
+    }
+    .lds-spinner div:nth-child(1) {
+        transform: rotate(0deg);
+        animation-delay: -1.1s;
+    }
+    .lds-spinner div:nth-child(2) {
+        transform: rotate(30deg);
+        animation-delay: -1s;
+    }
+    .lds-spinner div:nth-child(3) {
+        transform: rotate(60deg);
+        animation-delay: -0.9s;
+    }
+    .lds-spinner div:nth-child(4) {
+        transform: rotate(90deg);
+        animation-delay: -0.8s;
+    }
+    .lds-spinner div:nth-child(5) {
+        transform: rotate(120deg);
+        animation-delay: -0.7s;
+    }
+    .lds-spinner div:nth-child(6) {
+        transform: rotate(150deg);
+        animation-delay: -0.6s;
+    }
+    .lds-spinner div:nth-child(7) {
+        transform: rotate(180deg);
+        animation-delay: -0.5s;
+    }
+    .lds-spinner div:nth-child(8) {
+        transform: rotate(210deg);
+        animation-delay: -0.4s;
+    }
+    .lds-spinner div:nth-child(9) {
+        transform: rotate(240deg);
+        animation-delay: -0.3s;
+    }
+    .lds-spinner div:nth-child(10) {
+        transform: rotate(270deg);
+        animation-delay: -0.2s;
+    }
+    .lds-spinner div:nth-child(11) {
+        transform: rotate(300deg);
+        animation-delay: -0.1s;
+    }
+    .lds-spinner div:nth-child(12) {
+        transform: rotate(330deg);
+        animation-delay: 0s;
+    }
+    @@keyframes lds-spinner {
+        0% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+        }
+    }
+</style>
