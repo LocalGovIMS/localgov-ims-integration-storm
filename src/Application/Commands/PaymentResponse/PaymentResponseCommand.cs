@@ -1,5 +1,4 @@
-﻿using Application.Clients.LocalGovImsPaymentApi;
-using Domain.Exceptions;
+﻿using Domain.Exceptions;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
@@ -9,37 +8,39 @@ using Application.Data;
 using Application.Entities;
 using Keys = Application.Commands.PaymentResponseParameterKeys;
 using System;
+using LocalGovImsApiClient.Model;
 
 namespace Application.Commands
 {
-    public class PaymentResponseCommand : IRequest<ProcessPaymentResponseModel>
+    public class PaymentResponseCommand : IRequest<PaymentResponseCommandResult>
     {
         public Dictionary<string, string> Paramaters { get; set; }
         public string InternalReference { get; set; }
         public string Result { get; set; }
     }
 
-    public class PaymentResponseCommandHandler : IRequestHandler<PaymentResponseCommand, ProcessPaymentResponseModel>
+    public class PaymentResponseCommandHandler : IRequestHandler<PaymentResponseCommand, PaymentResponseCommandResult>
     {
         private readonly IConfiguration _configuration;
-        private readonly ILocalGovImsPaymentApiClient _localGovImsPaymentApiClient;
         private readonly IAsyncRepository<Payment> _paymentRepository;
+        private readonly LocalGovImsApiClient.Api.IPendingTransactionsApi _pendingTransactionsApi;
 
         private ProcessPaymentModel _processPaymentModel;
-        private ProcessPaymentResponseModel _processPaymentResponseModel;
+        private PaymentResponseCommandResult _result;
+        private ProcessPaymentResponse _processPaymentResponse;
         private Payment _payment;
 
         public PaymentResponseCommandHandler(
             IConfiguration configuration,
-            ILocalGovImsPaymentApiClient localGovImsPaymentApiClient,
-            IAsyncRepository<Payment> paymentRepository)
+            IAsyncRepository<Payment> paymentRepository,
+            LocalGovImsApiClient.Api.IPendingTransactionsApi pendingTransactionsApi)
         {
             _configuration = configuration;
-            _localGovImsPaymentApiClient = localGovImsPaymentApiClient;
+            _pendingTransactionsApi = pendingTransactionsApi;
             _paymentRepository = paymentRepository;
         }
 
-        public async Task<ProcessPaymentResponseModel> Handle(PaymentResponseCommand request, CancellationToken cancellationToken)
+        public async Task<PaymentResponseCommandResult> Handle(PaymentResponseCommand request, CancellationToken cancellationToken)
         {
             // TODO - Handle manual responses e.g. failed - cancelled
             BuildProcessPaymentModel(request.InternalReference, request.Result);
@@ -50,7 +51,9 @@ namespace Application.Commands
 
             await UpdateIntegrationPaymentStatus();
 
-            return _processPaymentResponseModel;
+            BuildResult();
+
+            return _result;
         }
 
         private void BuildProcessPaymentModel(string internalReference, string result)
@@ -89,7 +92,8 @@ namespace Application.Commands
 
         private async Task ProcessPayment()
         {
-            _processPaymentResponseModel = await _localGovImsPaymentApiClient.ProcessPayment(_processPaymentModel.MerchantReference, _processPaymentModel);
+            //     _processPaymentResponseModel = await _localGovImsPaymentApiClient.ProcessPayment(_processPaymentModel.MerchantReference, _processPaymentModel);
+            _processPaymentResponse = await _pendingTransactionsApi.PendingTransactionsProcessPaymentAsync(_processPaymentModel.MerchantReference, _processPaymentModel);
         }
         private async Task UpdateIntegrationPaymentStatus()
         {
@@ -99,6 +103,14 @@ namespace Application.Commands
             _payment.CapturedDate = DateTime.Now;
             _payment.Finished = true;
             _payment = (await _paymentRepository.Update(_payment)).Data;
+        }
+        private void BuildResult()
+        {
+            _result = new PaymentResponseCommandResult()
+            {
+                NextUrl = _processPaymentResponse.RedirectUrl,
+                Success = _processPaymentResponse.Success
+            };
         }
     }
 }

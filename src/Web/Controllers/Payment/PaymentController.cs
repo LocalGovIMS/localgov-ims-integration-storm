@@ -58,7 +58,7 @@ namespace Web.Controllers
                     return View("~/Views/Shared/Error.cshtml");
                 }
 
-                return Redirect(processPaymentResponse.RedirectUrl);
+                return Redirect(processPaymentResponse.NextUrl);
             }
             catch (Exception ex)
             {

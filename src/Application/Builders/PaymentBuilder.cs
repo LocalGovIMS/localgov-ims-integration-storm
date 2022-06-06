@@ -1,5 +1,5 @@
-﻿using Application.Clients.LocalGovImsPaymentApi;
-using Application.Models;
+﻿using Application.Models;
+using LocalGovImsApiClient.Model;
 
 namespace Application.Builders
 {
@@ -31,5 +31,6 @@ namespace Application.Builders
         public decimal Amount { get; set; }
         public string CardSelfServiceMopCode { get; set; }
         public PendingTransactionModel Transaction { get; set; }
+
     }
 }

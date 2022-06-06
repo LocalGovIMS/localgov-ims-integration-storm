@@ -1,4 +1,4 @@
-﻿using Application.Clients.LocalGovImsPaymentApi;
+﻿using LocalGovImsApiClient.Model;
 using System;
 
 namespace Application.UnitTests

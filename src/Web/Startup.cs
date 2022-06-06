@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using SmartPayService;
 using System;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +24,7 @@ namespace Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllersWithViews();
-            services.AddApplication();
+            services.AddApplication(Configuration);
             services.AddInfrastructure();
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
