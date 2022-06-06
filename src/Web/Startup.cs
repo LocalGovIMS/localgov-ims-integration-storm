@@ -7,7 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SmartPayService;
 using System;
-using System.ServiceModel;
+using Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Web
 {
@@ -28,6 +29,15 @@ namespace Web
             services.AddInfrastructure();
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+            services.AddDbContext<StormDbContext>((serviceProvider, optionsBuilder) =>
+                {
+                    optionsBuilder.UseSqlServer(Configuration.GetConnectionString("ImsStormDatabase"), sqlServerOptions => { sqlServerOptions.CommandTimeout(30); });
+                    optionsBuilder.EnableDetailedErrors();
+                    optionsBuilder.EnableSensitiveDataLogging();
+                },
+                ServiceLifetime.Transient
+            );
         }
 
 

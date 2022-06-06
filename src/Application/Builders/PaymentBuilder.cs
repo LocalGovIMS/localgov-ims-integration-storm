@@ -3,11 +3,11 @@ using Application.Models;
 
 namespace Application.Builders
 {
-    public class PaymentBuilder : IBuilder<PaymentBuilderArgs, Payment>
+    public class PaymentBuilder : IBuilder<PaymentBuilderArgs, StormPayment>
     {
-        private Payment _payment;
+        private StormPayment _payment;
 
-        public Payment Build(PaymentBuilderArgs args)
+        public StormPayment Build(PaymentBuilderArgs args)
         {
             CreatePayment(args);            
 
@@ -16,7 +16,7 @@ namespace Application.Builders
 
         private void CreatePayment(PaymentBuilderArgs args)
         {
-            _payment = new Payment
+            _payment = new StormPayment
             {
                 Amount = args.Amount,
                 InternalReference = args.Reference,

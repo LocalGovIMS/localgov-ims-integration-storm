@@ -19,7 +19,7 @@ namespace Application
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PerformanceBehaviour<,>));
 
             services.AddTransient<ICryptographyService, MD5CryptographyService>();
-            services.AddTransient<IBuilder<PaymentBuilderArgs, Payment>, PaymentBuilder>();
+            services.AddTransient<IBuilder<PaymentBuilderArgs, StormPayment>, PaymentBuilder>();
 
             return services;
         }

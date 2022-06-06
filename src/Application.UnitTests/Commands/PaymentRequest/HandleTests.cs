@@ -2,6 +2,8 @@
 using Application.Clients.LocalGovImsPaymentApi;
 using Application.Cryptography;
 using Application.Models;
+using Application.Data;
+using Application.Entities;
 using Domain.Exceptions;
 using FluentAssertions;
 using Moq;
@@ -20,14 +22,16 @@ namespace Application.UnitTests.Commands.PaymentRequest
 
         private readonly Mock<ICryptographyService> _mockCryptographyService = new Mock<ICryptographyService>();
         private readonly Mock<ILocalGovImsPaymentApiClient> _mockLocalGovImsPaymentApiClient = new Mock<ILocalGovImsPaymentApiClient>();
-        private readonly Mock<IBuilder<PaymentBuilderArgs, Payment>> _mockBuilder = new Mock<IBuilder<PaymentBuilderArgs, Payment>>();
+        private readonly Mock<IBuilder<PaymentBuilderArgs, StormPayment>> _mockBuilder = new Mock<IBuilder<PaymentBuilderArgs, StormPayment>>();
+        private readonly Mock<IAsyncRepository<Payment>> _mockPaymentRepository = new Mock<IAsyncRepository<Payment>>();
 
         public HandleTests()
         {
             _commandHandler = new Handler(
                 _mockCryptographyService.Object,
                 _mockLocalGovImsPaymentApiClient.Object,
-                _mockBuilder.Object);
+                _mockBuilder.Object,
+                _mockPaymentRepository.Object);
 
             SetupClient(System.Net.HttpStatusCode.OK);
             SetupCommand("reference", "hash");
@@ -47,7 +51,7 @@ namespace Application.UnitTests.Commands.PaymentRequest
                 });
 
             _mockBuilder.Setup(x => x.Build(It.IsAny<PaymentBuilderArgs>()))
-                .Returns(new Payment());
+                .Returns(new StormPayment());
         }
 
         private void SetupCommand(string reference, string hash)

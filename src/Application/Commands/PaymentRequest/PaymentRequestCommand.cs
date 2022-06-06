@@ -8,45 +8,54 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Cryptography;
+using Application.Data;
+using Application.Entities;
+using System;
 
 namespace Application.Commands
 {
-    public class PaymentRequestCommand : IRequest<Payment>
+    public class PaymentRequestCommand : IRequest<StormPayment>
     {
         public string Reference { get; set; }
 
         public string Hash { get; set; }
     }
 
-    public class PaymentRequestCommandHandler : IRequestHandler<PaymentRequestCommand, Payment>
+    public class PaymentRequestCommandHandler : IRequestHandler<PaymentRequestCommand, StormPayment>
     {
         private readonly ILocalGovImsPaymentApiClient _localGovImsPaymentApiClient;
-        private readonly IBuilder<PaymentBuilderArgs, Payment> _paymentBuilder;
+        private readonly IBuilder<PaymentBuilderArgs, StormPayment> _paymentBuilder;
         private readonly ICryptographyService _cryptographyService;
+        private readonly IAsyncRepository<Payment> _paymentRepository;
 
         private List<PendingTransactionModel> _pendingTransactions;
         private PendingTransactionModel _pendingTransaction;
+        private StormPayment _result;
         private Payment _payment;
 
         public PaymentRequestCommandHandler(
             ICryptographyService cryptographyService,
             ILocalGovImsPaymentApiClient localGovImsPaymentApiClient,
-            IBuilder<PaymentBuilderArgs, Payment> paymentBuilder)
+            IBuilder<PaymentBuilderArgs, StormPayment> paymentBuilder,
+            IAsyncRepository<Payment> paymentRepository)
         {
             _localGovImsPaymentApiClient = localGovImsPaymentApiClient;
             _paymentBuilder = paymentBuilder;
             _cryptographyService = cryptographyService;
+            _paymentRepository = paymentRepository;
         }
 
-        public async Task<Payment> Handle(PaymentRequestCommand request, CancellationToken cancellationToken)
+        public async Task<StormPayment> Handle(PaymentRequestCommand request, CancellationToken cancellationToken)
         {
             await ValidateRequest(request);
 
             GetPendingTransaction();
 
+            await GetCreatePayment(request);
+
             await BuildPayment(request);
 
-            return _payment;
+            return _result;
         }
 
         private async Task ValidateRequest(PaymentRequestCommand request)
@@ -74,9 +83,30 @@ namespace Application.Commands
             _pendingTransaction = _pendingTransactions.FirstOrDefault();
         }
 
+        private async Task GetCreatePayment(PaymentRequestCommand request)
+        {
+            _payment = (await _paymentRepository.Get(x => x.Reference == request.Reference)).Data;
+            if (_payment == null)
+            {
+                await CreatePayment(request);
+            }
+        }
+
+        private async Task CreatePayment(PaymentRequestCommand request)
+        {
+            _payment = (await _paymentRepository.Add(new Payment()
+            {
+                Amount = Convert.ToDecimal(_pendingTransactions.Sum(x => x.Amount)),
+                CreatedDate = DateTime.Now,
+                Identifier = Guid.NewGuid(),
+                Reference = request.Reference,
+                FailureUrl = _pendingTransaction.FailUrl
+            })).Data;
+        }
+
         private async Task BuildPayment(PaymentRequestCommand request)
         {
-            _payment = _paymentBuilder.Build(new PaymentBuilderArgs()
+            _result = _paymentBuilder.Build(new PaymentBuilderArgs()
             {
                 Reference = request.Reference,
                 Amount = _pendingTransactions.Sum(x => x.Amount ?? 0),

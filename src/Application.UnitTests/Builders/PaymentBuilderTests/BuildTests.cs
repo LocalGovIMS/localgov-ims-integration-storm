@@ -10,7 +10,7 @@ namespace Application.UnitTests.Builders.PaymentBuilderTests
 {
     public class BuildTests
     {
-        private IBuilder<PaymentBuilderArgs, Payment> _builder;
+        private IBuilder<PaymentBuilderArgs, StormPayment> _builder;
         private PaymentBuilderArgs _args;
 
         private void Arrange()

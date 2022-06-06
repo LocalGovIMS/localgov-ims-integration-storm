@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Application.Models
 {
-    public class Payment
+    public class StormPayment
     {
         public decimal Amount { get; set; }
         public string InternalReference { get; set; }
