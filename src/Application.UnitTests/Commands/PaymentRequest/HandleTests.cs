@@ -13,6 +13,7 @@ using Command = Application.Commands.PaymentRequestCommand;
 using Handler = Application.Commands.PaymentRequestCommandHandler;
 using System.Threading;
 using LocalGovImsApiClient.Model;
+using Application.Clients.CybersourceRestApiClient.Interfaces;
 
 namespace Application.UnitTests.Commands.PaymentRequest
 {
@@ -34,8 +35,7 @@ namespace Application.UnitTests.Commands.PaymentRequest
                 _mockBuilder.Object,
                 _mockPaymentRepository.Object,
                 _mockPendingTransactionsApi.Object,
-                _mockProcessedTransactionsApi.Object
-);
+                _mockProcessedTransactionsApi.Object);
 
             SetupClient(System.Net.HttpStatusCode.OK);
             SetupCommand("reference", "hash");

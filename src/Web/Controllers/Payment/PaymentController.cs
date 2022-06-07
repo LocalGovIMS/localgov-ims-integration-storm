@@ -34,7 +34,29 @@ namespace Web.Controllers
             {
                 var paymentDetails = await Mediator.Send(new PaymentRequestCommand() { Reference = reference, Hash = hash });
 
-                return View(paymentDetails);
+                return RedirectToAction(nameof(PollForUpdates),new {reference = reference, hash = hash, amount = paymentDetails.Amount});
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, DefaultErrorMessage);
+
+                ViewBag.ExMessage = DefaultErrorMessage;
+                return View("~/Views/Shared/Error.cshtml");
+            }
+        }
+
+        [HttpGet("PollForUpdates/{reference}/{hash}")]
+        public async Task<IActionResult> PollForUpdates(string reference, string hash, decimal amount)
+        {
+            try
+            {
+                var paymentDetails = await Mediator.Send(new PollForUpdateCommand() { Reference = reference, Hash = hash, Amount = amount });
+
+                if (!paymentDetails.Success)
+                {
+                    return View("Index", paymentDetails);
+                }
+                return RedirectToAction(nameof(PaymentResponse), new { internalReference = reference, result = AuthorisationResult.Authorised });
             }
             catch (Exception ex)
             {
@@ -50,7 +72,7 @@ namespace Web.Controllers
         {
             try
             {
-                var processPaymentResponse = await Mediator.Send(new PaymentResponseCommand() { Paramaters = HttpContext.Request.QueryString.ToDictionary(), InternalReference = internalReference, Result = result });
+                var processPaymentResponse = await Mediator.Send(new PaymentResponseCommand() { InternalReference = internalReference, Result = result });
 
                 if (!processPaymentResponse.Success)
                 {

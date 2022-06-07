@@ -12,7 +12,6 @@ using Application.Entities;
 using System;
 using LocalGovImsApiClient.Client;
 
-
 namespace Application.Commands
 {
     public class PaymentRequestCommand : IRequest<StormPayment>
@@ -32,17 +31,16 @@ namespace Application.Commands
 
         private List<LocalGovImsApiClient.Model.PendingTransactionModel> _pendingTransactions;
         private LocalGovImsApiClient.Model.PendingTransactionModel _pendingTransaction;
-     //   private List<PendingTransactionModel> _pendingTransactions;
-     //    private PendingTransactionModel _pendingTransaction;
         private StormPayment _result;
         private Payment _payment;
+        private List<Payment> _uncapturedPayments = new();
 
         public PaymentRequestCommandHandler(
             ICryptographyService cryptographyService,
             IBuilder<PaymentBuilderArgs, StormPayment> paymentBuilder,
             IAsyncRepository<Payment> paymentRepository,
             LocalGovImsApiClient.Api.IPendingTransactionsApi pendingTransactionsApi,
-            LocalGovImsApiClient.Api.IProcessedTransactionsApi processedTransactionsApi)
+            LocalGovImsApiClient.Api.IProcessedTransactionsApi processedTransactionsApi  )
         {
             _paymentBuilder = paymentBuilder;
             _cryptographyService = cryptographyService;
@@ -57,9 +55,9 @@ namespace Application.Commands
 
             GetPendingTransaction();
 
-            await GetCreatePayment(request);
+            await CreateIntegrationPayment(request);
 
-            await BuildPayment(request);
+            BuildPayment(request);
 
             return _result;
         }
@@ -69,7 +67,6 @@ namespace Application.Commands
             ValidateRequestValue(request);
             await CheckThatProcessedTransactionsDoNotExist(request);
             await CheckThatAPendingTransactionExists(request);
-
         }
 
         private void ValidateRequestValue(PaymentRequestCommand request)
@@ -142,16 +139,8 @@ namespace Application.Commands
             _pendingTransaction = _pendingTransactions.FirstOrDefault();
         }
 
-        private async Task GetCreatePayment(PaymentRequestCommand request)
-        {
-            _payment = (await _paymentRepository.Get(x => x.Reference == request.Reference)).Data;
-            if (_payment == null)
-            {
-                await CreatePayment(request);
-            }
-        }
 
-        private async Task CreatePayment(PaymentRequestCommand request)
+        private async Task CreateIntegrationPayment(PaymentRequestCommand request)
         {
             _payment = (await _paymentRepository.Add(new Payment()
             {
@@ -163,7 +152,7 @@ namespace Application.Commands
             })).Data;
         }
 
-        private async Task BuildPayment(PaymentRequestCommand request)
+        private void BuildPayment(PaymentRequestCommand request)
         {
             _result = _paymentBuilder.Build(new PaymentBuilderArgs()
             {

@@ -28,8 +28,6 @@
 
   <ItemGroup>
     <Folder Include="Behaviours\" />
-    <Folder Include="Clients\LocalGovImsPaymentApi\Interfaces\" />
-    <Folder Include="Clients\NewFolder\" />
   </ItemGroup>
 
   <ItemGroup>

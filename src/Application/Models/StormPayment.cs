@@ -7,5 +7,7 @@ namespace Application.Models
     {
         public decimal Amount { get; set; }
         public string InternalReference { get; set; }
+        public bool Success { get; set; } = false;
+
     }
 }
