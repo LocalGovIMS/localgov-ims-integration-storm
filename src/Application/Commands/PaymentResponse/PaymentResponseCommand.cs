@@ -1,12 +1,9 @@
-﻿using Domain.Exceptions;
-using MediatR;
+﻿using MediatR;
 using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Data;
 using Application.Entities;
-using Keys = Application.Commands.PaymentResponseParameterKeys;
 using System;
 using LocalGovImsApiClient.Model;
 using Application.Clients.CybersourceRestApiClient.Interfaces;
@@ -46,7 +43,6 @@ namespace Application.Commands
 
         public async Task<PaymentResponseCommandResult> Handle(PaymentResponseCommand request, CancellationToken cancellationToken)
         {
-            // TODO - Handle manual responses e.g. failed - cancelled
             await BuildProcessPaymentModel(request.InternalReference, request.Result);
 
             await GetIntegrationPayment(_processPaymentModel);
@@ -70,7 +66,7 @@ namespace Application.Commands
                     _processPaymentModel = new ProcessPaymentModel()
                     {
                         AuthResult = LocalGovIMSResults.Authorised,
-                        PspReference = paymentCardDetails.FirstOrDefault().Reference,
+                        PspReference = paymentCardDetails.FirstOrDefault().PaymentId,
                         MerchantReference = internalReference,
                     //    PaymentMethod = paymentCardDetails.FirstOrDefault(). paramaters.GetValueOrDefault(Keys.PaymentMethod),
                         CardPrefix = paymentCardDetails.FirstOrDefault().CardPrefix,
@@ -115,6 +111,7 @@ namespace Application.Commands
         private async Task UpdateIntegrationPaymentStatus()
         {
             _payment.Status = _processPaymentModel.AuthResult;
+            _payment.PaymentId = _processPaymentModel.PspReference;
             _payment.CardPrefix = _processPaymentModel.CardPrefix;
             _payment.CardSuffix = _processPaymentModel.CardSuffix;
             _payment.CapturedDate = DateTime.Now;

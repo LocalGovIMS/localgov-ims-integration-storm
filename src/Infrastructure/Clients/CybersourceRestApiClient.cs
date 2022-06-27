@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Threading.Tasks;
 using Application.Clients.CybersourceRestApiClient.Interfaces;
-using Application.Commands;
 using CyberSource.Api;
 using CyberSource.Client;
 using CyberSource.Model;
 using Microsoft.Extensions.Configuration;
 using System.Linq;
 using Application.Entities;
-
+using Infrastructure.Extensions;
+using System.Globalization;
+using Application.Commands;
 
 namespace Infrastructure.Clients
 {
@@ -34,26 +34,80 @@ namespace Infrastructure.Clients
             SetupConfigDictionary();
         }
 
-        public async Task<List<Payment>> GetPayments(string clientReference)
+        public async Task<bool> RefundPayment(string clientReference, string pspReference, decimal amount)
         {
-            var clientConfig = new Configuration(merchConfigDictObj: _configurationDictionary);
-            var apiInstance = new TransactionDetailsApi(clientConfig);
-            var searchResults = await apiInstance.GetTransactionAsync(clientReference);
+            try
+            {
+                var clientConfig = new Configuration(merchConfigDictObj: _configurationDictionary);
 
-            return _uncapturedPayments;
+                var clientReferenceInformation = new Ptsv2paymentsClientReferenceInformation(
+                    Code: clientReference
+                );
+
+                var orderInformationAmountDetails = new Ptsv2paymentsidcapturesOrderInformationAmountDetails(
+                    TotalAmount: amount.ToString(CultureInfo.InvariantCulture),
+                    Currency: "GBP"
+                );
+
+                var orderInformation = new Ptsv2paymentsidrefundsOrderInformation(
+                    AmountDetails: orderInformationAmountDetails
+                );
+
+                var requestObj = new RefundPaymentRequest(
+                    ClientReferenceInformation: clientReferenceInformation,
+                    OrderInformation: orderInformation
+                );
+
+                var apiInstance = new RefundApi(clientConfig);
+                var result = await apiInstance.RefundPaymentAsync(requestObj, pspReference);
+                return result.Status == LocalGovIMSResults.Pending;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception on calling the API : " + e.Message);
+                return false;
+            }
+        }
+
+        public async Task<List<Payment>> SearchRefunds(string clientReference, int daysAgo)
+        {
+            List<Payment> _uncapturedPayments = new();
+
+            var requestObj = CybersourceExtensions.CreateNewSearchRequest(clientReference, daysAgo);
+
+            try
+            {
+                var clientConfig = new Configuration(merchConfigDictObj: _configurationDictionary);
+
+                var apiInstance = new SearchTransactionsApi(clientConfig);
+                var searchResult = await apiInstance.CreateSearchAsync(requestObj);
+
+                if (searchResult == null || searchResult.Count != 1)
+                    return _uncapturedPayments;
+
+                if (searchResult.Embedded.TransactionSummaries.All(x => x.ApplicationInformation.RFlag != "SOK"))
+                    return _uncapturedPayments;
+
+                var activeResults = searchResult.Embedded.TransactionSummaries;
+
+                foreach (var matchingResult in activeResults)
+                {
+                    _uncapturedPayments.Add(CybersourceExtensions.CreatePaymentRecord(matchingResult));
+                }
+                return _uncapturedPayments;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception on calling the API : " + e.Message);
+                return _uncapturedPayments; // TODO: fix
+            }
         }
 
         public async Task<List<Payment>> SearchPayments(string clientReference, int daysAgo)
         {
-            var requestObj = new CreateSearchRequest(
-                Save: false,
-                Name: "MRN",
-                Timezone: "Europe/London",
-                Query: BuildSearchQuery(clientReference, daysAgo),
-                Offset: 0,
-                Limit: 1000,
-                Sort: "submitTimeUtc:desc"
-            );
+            List<Payment> _uncapturedPayments = new();
+
+            var requestObj = CybersourceExtensions.CreateNewSearchRequest(clientReference, daysAgo);
 
             try
             {
@@ -74,17 +128,7 @@ namespace Infrastructure.Clients
 
                 foreach (var matchingResult in activeResults)
                 {
-                    _uncapturedPayments.Add(new Payment
-                    {
-                        CreatedDate = DateTime.Now,
-                        Identifier = Guid.NewGuid(),
-                        Reference = matchingResult.Id,
-                        Amount = decimal.Parse(matchingResult.OrderInformation.AmountDetails.TotalAmount),
-                        PaymentId = matchingResult.ClientReferenceInformation.Code,
-                        CapturedDate = Convert.ToDateTime(matchingResult.SubmitTimeUtc),
-                        CardPrefix = matchingResult.PaymentInformation.Card.Prefix,
-                        CardSuffix = matchingResult.PaymentInformation.Card.Suffix,
-                    });
+                    _uncapturedPayments.Add(CybersourceExtensions.CreatePaymentRecord(matchingResult));
                 }
                 return _uncapturedPayments;
             }
@@ -93,24 +137,6 @@ namespace Infrastructure.Clients
                 Console.WriteLine("Exception on calling the API : " + e.Message);
                 return _uncapturedPayments; // TODO: fix
             }
-        }
-
-        private static string BuildSearchQuery(string clientReference, int daysAgo)
-        {
-            var query = "";
-            var submitTimeUtcQuery = "[NOW/DAY-" + daysAgo + "DAY" + ((daysAgo > 1) ? "S" : "") + " TO NOW/DAY+1DAY}";
-
-            if (clientReference != "")
-            {
-                query = "clientReferenceInformation.code:" + clientReference +
-                        " AND submitTimeUtc:" + submitTimeUtcQuery;
-            }
-            else
-            {
-                query = "submitTimeUtc:" + submitTimeUtcQuery;
-            }
-
-            return query;
         }
 
         private void SetupConfigDictionary()

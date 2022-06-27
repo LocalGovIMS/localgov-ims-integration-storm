@@ -5,7 +5,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
 using Web.Models;
 
@@ -32,9 +31,14 @@ namespace Web.Controllers
         {
             try
             {
-                var paymentDetails = await Mediator.Send(new PaymentRequestCommand() { Reference = reference, Hash = hash });
+                var paymentDetails = await Mediator.Send(
+                    new PaymentRequestCommand()
+                    {
+                        Reference = reference,
+                        Hash = hash
+                    });
 
-                return RedirectToAction(nameof(PollForUpdates),new {reference = reference, hash = hash, amount = paymentDetails.Amount});
+                return RedirectToAction(nameof(PollForUpdates), new { reference = reference, hash = hash, amount = paymentDetails.Amount });
             }
             catch (Exception ex)
             {
@@ -50,7 +54,13 @@ namespace Web.Controllers
         {
             try
             {
-                var paymentDetails = await Mediator.Send(new PollForUpdateCommand() { Reference = reference, Hash = hash, Amount = amount });
+                var paymentDetails = await Mediator.Send(
+                    new PollForUpdateCommand()
+                    {
+                        Reference = reference,
+                        Hash = hash,
+                        Amount = amount
+                    });
 
                 if (!paymentDetails.Success)
                 {
@@ -72,7 +82,12 @@ namespace Web.Controllers
         {
             try
             {
-                var processPaymentResponse = await Mediator.Send(new PaymentResponseCommand() { InternalReference = internalReference, Result = result });
+                var processPaymentResponse = await Mediator.Send(
+                    new PaymentResponseCommand()
+                    {
+                        InternalReference = internalReference,
+                        Result = result
+                    });
 
                 if (!processPaymentResponse.Success)
                 {

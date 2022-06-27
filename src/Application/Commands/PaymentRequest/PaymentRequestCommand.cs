@@ -11,6 +11,7 @@ using Application.Data;
 using Application.Entities;
 using System;
 using LocalGovImsApiClient.Client;
+using LocalGovImsApiClient.Model;
 
 namespace Application.Commands
 {
@@ -29,11 +30,10 @@ namespace Application.Commands
         private readonly LocalGovImsApiClient.Api.IPendingTransactionsApi _pendingTransactionsApi;
         private readonly LocalGovImsApiClient.Api.IProcessedTransactionsApi _processedTransactionsApi;
 
-        private List<LocalGovImsApiClient.Model.PendingTransactionModel> _pendingTransactions;
-        private LocalGovImsApiClient.Model.PendingTransactionModel _pendingTransaction;
+        private List<PendingTransactionModel> _pendingTransactions;
+        private PendingTransactionModel _pendingTransaction;
         private StormPayment _result;
         private Payment _payment;
-        private List<Payment> _uncapturedPayments = new();
 
         public PaymentRequestCommandHandler(
             ICryptographyService cryptographyService,
